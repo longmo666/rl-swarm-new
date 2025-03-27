@@ -40,10 +40,23 @@ If you encounter issues with the coordinator peer, try this backup peer node:
 DEFAULT_PEER_MULTI_ADDRS="/dns/rl-swarm.gensyn.ai/tcp/38331/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ" # gensyn coordinator node
 ```
 
-(Experimental) fix to increase memory on macbook:
+### Mac M-Series Support
 
+Mac users with M-series chips (M1/M2/M3/M4) can now use this project with built-in optimizations:
+
+- The script automatically detects Apple Silicon and applies necessary memory optimizations
+- Memory configuration is tuned to prevent common crashes on M-series chips
+- Connection error handling has been improved for better reliability
+- Backup peer connection when primary is unreachable
+
+For Docker users on M-series Macs, add the `--platform linux/arm64` flag:
+```bash
+docker run --platform linux/arm64 --pull=always -it --rm europe-docker.pkg.dev/gensyn-public-b7d9/public/rl-swarm:v0.0.2 ./run_hivemind_docker.sh
 ```
-export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
+
+To diagnose Mac-specific issues, run:
+```bash
+./mac_check.sh
 ```
 
 ## Alternative Instructions:
