@@ -66,6 +66,7 @@ IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
 echo "Getting requirements..."
 pip install -r "$ROOT"/requirements-hivemind.txt
 pip install -r "$ROOT"/requirements.txt
+pip install "protobuf<5.28.0" --force-reinstall
 
 if ! which nvidia-smi; then
    #You don't have a NVIDIA GPU
