@@ -55,21 +55,19 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
 
     SERVER_PID=$!  # Store the process ID
     sleep 5
-    get_vps_ip() {
-    curl -s ifconfig.me || curl -s icanhazip.com
-    }
+    
     if [[ "$OSTYPE" == "darwin"* ]]; then
       open http://localhost:3000  # macOS
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
       SERVER_IP=$(hostname -I | awk '{print $1}')
-    if [[ -z "$SERVER_IP" || "$SERVER_IP" == "127.0.0.1" ]]; then
-        SERVER_IP=$(get_vps_ip)
-    fi
+      if [[ -z "$SERVER_IP" || "$SERVER_IP" == "127.0.0.1" ]]; then
+        SERVER_IP=$(curl -s ifconfig.me)  # Directly get the external IP
+      fi
       echo "Visit this url and login : http://$SERVER_IP:3000"
     else
-      echo "Unsupported OS. Please open http://localhost:3000 manually."
+      echo "Unsupported OS. Please visit : http://localhost:3000 manually and login."
     fi
-
+    
     cd ..
 
     # Wait until modal-login/temp-data/userData.json exists
