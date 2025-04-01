@@ -44,27 +44,30 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
     cd modal-login
     # Check if the yarn command exists; if not, install Yarn.
     source ~/.bashrc
-    
     if ! command -v yarn >/dev/null 2>&1; then
-        # Detect Ubuntu (including WSL Ubuntu) and install Yarn accordingly
-        if grep -qi "ubuntu" /etc/os-release 2>/dev/null || uname -r | grep -qi "microsoft"; then
-            echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
-            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-            echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-            sudo apt update && sudo apt install -y yarn
-        else
-            echo "Yarn is not installed. Installing Yarn..."
-            curl -o- -L https://yarnpkg.com/install.sh | sh
-            echo 'export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"' >> ~/.bashrc
-            source ~/.bashrc
-        fi
+      echo "Yarn is not installed. Installing Yarn..."
+      curl -o- -L https://yarnpkg.com/install.sh | sh
+      echo 'export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"' >> ~/.bashrc
+      source ~/.bashrc
     fi
     yarn install
     yarn dev > /dev/null 2>&1 & # Run in background and suppress output
 
     SERVER_PID=$!  # Store the process ID
     sleep 5
-    open http://localhost:3000
+    
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      open http://localhost:3000  # macOS
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+      SERVER_IP=$(hostname -I | awk '{print $1}')
+      if [[ -z "$SERVER_IP" || "$SERVER_IP" == "127.0.0.1" ]]; then
+        SERVER_IP=$(curl -s ifconfig.me)  # Directly get the external IP
+      fi
+      echo "Visit this url and login : http://$SERVER_IP:3000"
+    else
+      echo "Unsupported OS. Please visit : http://localhost:3000 manually and login."
+    fi
+    
     cd ..
 
     # Wait until modal-login/temp-data/userData.json exists
@@ -142,4 +145,3 @@ else
 fi
 
 wait  # Keep script running until Ctrl+C
-
