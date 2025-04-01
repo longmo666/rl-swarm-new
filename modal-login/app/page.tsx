@@ -27,15 +27,13 @@ export default function Home() {
       return;
     }
 
-    const submitStamps = async () => {
+    const submitStamp = async () => {
       const whoamiStamp = await signer.inner.stampWhoami();
-      const getOrganizationStamp = await signer.inner.stampGetOrganization();
-      console.log({ whoamiStamp, getOrganizationStamp });
       const resp = await fetch("/api/get-api-key", {
         method: "POST",
-        body: JSON.stringify({ whoamiStamp, getOrganizationStamp }),
+        body: JSON.stringify({ whoamiStamp }),
       });
-      return (await resp.json()) as { publicKey: string; isNewKey: boolean };
+      return (await resp.json()) as { publicKey: string };
     };
 
     const createApiKey = async (publicKey: string) => {
@@ -49,40 +47,64 @@ export default function Home() {
       });
     };
 
-    submitStamps()
-      .then(({ publicKey, isNewKey }) => {
-        console.log({ publicKey, isNewKey });
-        // If it's not a new key, we are done.
-        if (!isNewKey) {
-          return;
-        }
-        // If it is a new key, the client needs to grant access to it.
-        return createApiKey(publicKey);
-      })
-      .then(() => setCreatedApiKey(true));
+    const handleAll = async () => {
+      // Submit whoami stamp & get new public key from server.
+      const { publicKey } = await submitStamp();
+      // Delegate user access to the API key.
+      await createApiKey(publicKey);
+      // Mark API key as activated in db to flag to consumers that it's ready.
+      await fetch("/api/set-api-key-activated", {
+        method: "POST",
+        body: JSON.stringify({ orgId: user.orgId, apiKey: publicKey }),
+      });
+      setCreatedApiKey(true);
+    };
+
+    handleAll().catch((err) => {
+      console.error(err);
+      alert("Something went wrong. Please check the console for details.");
+    });
   }, [createdApiKey, signer, signerStatus.isConnected, user]);
+
+  // Show alert if crypto.subtle isn't available.
+  useEffect(() => {
+    if (typeof window === undefined) {
+      return;
+    }
+    try {
+      if (typeof window.crypto.subtle !== "object") {
+        throw new Error("window.crypto.subtle is not available");
+      }
+    } catch (err) {
+      alert(
+        "Crypto api is not available in browser. Please be sure that the app is being accessed via localhost or a secure connection.",
+      );
+    }
+  }, []);
 
   return (
     <main className="flex min-h-screen flex-col items-center gap-4 justify-center text-center">
-      {signerStatus.isInitializing ? (
+      {signerStatus.isInitializing || (user && !createdApiKey) ? (
         <>Loading...</>
       ) : user ? (
         <div className="card">
-        <div className="flex flex-col gap-2 p-2">
-          <p className="text-xl font-bold">YOU ARE SUCCESSFULLY LOGGED IN TO THE GENSYN TESTNET</p>
-          <button className="btn btn-primary mt-6" onClick={() => logout()}>
-            Log out
-          </button>
-        </div>
+          <div className="flex flex-col gap-2 p-2">
+            <p className="text-xl font-bold">
+              YOU ARE SUCCESSFULLY LOGGED IN TO THE GENSYN TESTNET
+            </p>
+            <button className="btn btn-primary mt-6" onClick={() => logout()}>
+              Log out
+            </button>
+          </div>
         </div>
       ) : (
         <div className="card">
-        <p className="text-xl font-bold">LOGIN TO THE GENSYN TESTNET</p>
-        <div className="flex flex-col gap-2 p-2">
-          <button className="btn btn-primary mt-6" onClick={openAuthModal}>
-          Login
-          </button>
-        </div>
+          <p className="text-xl font-bold">LOGIN TO THE GENSYN TESTNET</p>
+          <div className="flex flex-col gap-2 p-2">
+            <button className="btn btn-primary mt-6" onClick={openAuthModal}>
+              Login
+            </button>
+          </div>
         </div>
       )}
     </main>

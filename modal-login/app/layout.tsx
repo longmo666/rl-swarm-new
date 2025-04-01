@@ -22,7 +22,7 @@ export default function RootLayout({
   // https://accountkit.alchemy.com/react/ssr#persisting-the-account-state
   const initialState = cookieToInitialState(
     config,
-    headers().get("cookie") ?? undefined
+    headers().get("cookie") ?? undefined,
   );
 
   return (
