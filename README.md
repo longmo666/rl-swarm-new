@@ -1,4 +1,6 @@
-# RL Swarm
+python3 -m venv .venv
+source .venv/bin/activate
+./run_rl_swarm.sh# RL Swarm
 
 RL Swarm is an open source system for peer-to-peer reinforcement learning over the internet. Running a swarm node allows you to train your personal model against the swarm intelligence. Each swarm performs RL reasoning as a group, with a gossiping system (Hivemind) for collaborative improvement between models. You can also connect your node to the Gensyn Testnet, to receive an on-chain identity that tracks your progress over time.
 
