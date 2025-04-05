@@ -62,7 +62,6 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
 
     # Additional steps before running dev server
     yarn upgrade
-    yarn add next@latest
     yarn add viem@latest
 
     yarn install
