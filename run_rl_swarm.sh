@@ -1,4 +1,6 @@
 #!/bin/bash
+# 🐝 Gensyn RL Swarm Launcher
+# This script handles modal login, port detection, HF setup, and node startup
 
 #General args
 ROOT=$PWD
@@ -60,11 +62,39 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
         fi
     fi
     yarn install
-    yarn dev > /dev/null 2>&1 & # Run in background and suppress output
+    
+    # Ensure log directory exists before writing
+    mkdir -p modal-login/logs
 
-    SERVER_PID=$!  # Store the process ID
-    sleep 5
-    open http://localhost:3000
+    ACTUAL_PORT=3000
+    
+    while nc -z localhost $ACTUAL_PORT; do
+      echo "⚠ Port $ACTUAL_PORT is in use, trying $((ACTUAL_PORT+1)) instead."
+      ACTUAL_PORT=$((ACTUAL_PORT+1))  # <== fix: update ACTUAL_PORT directly
+    done
+
+    export PORT=$ACTUAL_PORT
+    echo "✅ Launching modal-login on PORT=$PORT"
+
+    yarn dev > modal-login/logs/dev.log 2>&1 &
+    SERVER_PID=$!
+
+    echo "⏳ Waiting for Next.js to bind to port $PORT..."
+    for i in {1..10}; do
+      if nc -z localhost $PORT; then
+        echo "✅ Next.js is running on port $PORT"
+        break
+      fi
+      sleep 1
+    done
+
+    if ! nc -z localhost $PORT; then
+      echo "❌ Next.js failed to bind to port $PORT"
+      tail -n 20 modal-login/logs/dev.log
+      exit 1
+    fi
+
+    xdg-open "http://localhost:$PORT" 2>/dev/null || open "http://localhost:$PORT"
     cd ..
 
     # Wait until modal-login/temp-data/userData.json exists
@@ -80,7 +110,7 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
     # Wait until the API key is activated by the client
     echo "Waiting for API key to become activated..."
     while true; do
-        STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
+	STATUS=$(curl -s "http://localhost:$PORT/api/get-api-key-status?orgId=$ORG_ID")
         if [[ "$STATUS" == "activated" ]]; then
             echo "API key is activated! Proceeding..."
             break
