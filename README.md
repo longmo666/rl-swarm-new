@@ -8,7 +8,7 @@ RL Swarm is fully open and permissionless, meaning you can run it on a basic con
 
 Ensure you that you are using a supported machine/device/environment:
 
-- arm64 or x86 CPU with minimum 16gb ram
+- arm64 or x86 CPU with minimum free 16gb ram space
 
 OR
 
