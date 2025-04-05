@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Ensure /usr/bin/python exists as a symlink to /usr/bin/python3
+if [ ! -e /usr/bin/python ]; then
+    sudo ln -s /usr/bin/python3 /usr/bin/python
+fi
+
 #General args
 ROOT=$PWD
 
@@ -155,4 +160,3 @@ else
 fi
 
 wait  # Keep script running until Ctrl+C
-
