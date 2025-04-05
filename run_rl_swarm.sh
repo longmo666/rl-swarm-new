@@ -44,6 +44,13 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
     fi
     yarn install
 
+    echo "Upgrading modal-login dependencies..."
+    cd "$ROOT/modal-login"
+    yarn upgrade
+    yarn add next@latest
+    yarn add viem@latest
+    cd "$ROOT"
+
     echo "Starting the development server..."
     yarn next dev > server.log 2>&1 &
     SERVER_PID=$!
@@ -171,7 +178,6 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
     echo -e "${YELLOW}Starting ngrok HTTPS tunnel forwarding localhost:$PORT...${NC}"
     pkill -f ngrok
     sleep 2
-    
     
     ngrok http "$PORT" > ngrok.log 2>&1 &
     NGROK_PID=$!
