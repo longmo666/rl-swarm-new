@@ -1,4 +1,4 @@
-#For geting top-k ranking for subsampling
+#For getting top-k ranking for subsampling
 import hashlib
 import os
 import random
@@ -9,7 +9,7 @@ import hivemind_exp.gsm8k.stage1_rewards as stage1_rewards
 import hivemind_exp.gsm8k.stage2_rewards as stage2_rewards
 
 #############################################################################################################
-# TODO: Lots of repitition across stages, so would be good to fold them into one another and simplify things.#
+# TODO: Lots of repetition across stages, so would be good to fold them into one another and simplify things.#
 #############################################################################################################
 
 STAGE1_SYSTEM_PROMPT = """
@@ -25,7 +25,7 @@ Respond in the following format:
 """
 
 STAGE2_SYSTEM_PROMPT = """
-You joined a mathematics study group. After being given a math question, all members of your study group have independantly come up with their own answer and you now want to decide which answer is best (or if no answer is correct). All students in the study group were instructed to give their reasoning process in <think> </think> tags and the final answer to the question in <answer> </answer> tags.
+You joined a mathematics study group. After being given a math question, all members of your study group have independently come up with their own answer and you now want to decide which answer is best (or if no answer is correct). All students in the study group were instructed to give their reasoning process in <think> </think> tags and the final answer to the question in <answer> </answer> tags.
 An ideal answer will satisfy four important criteria: 1) The reasoning for their final answer will be in <think> </think> tags. 2) Their final answer to the question will be in <answer> </answer> tags. 3) Their reasoning will be correct, concise, and clearly related to the question. 4) The final answer will be mathematically correct.
 As a reminder, among all answers you have received, you want to decide which answer is best or if no answer is correct. You should compare the reasoning process of the different answers you've received, then explain why an answer is the best (or why no answer is correct), and finally you should state the unique student identifier (marked by <student> <\student> tags) of the answer you believe is best or say "None" if no answer was correct.
 Respond in the following format:
@@ -41,7 +41,7 @@ Respond in the following format:
 """
 
 STAGE3_SYSTEM_PROMPT = """
-You joined a mathematics study group. After being given a math question, all members of your study group have independantly come up with their own answer and then compared all the proposed answers. You now have two tasks: 1) Consider the feedback/criticisms given by members of the study group and decide which answer you believe a majority of the group will agree is best (or say "None" if no answer was correct). 2) Incorporate details from the best answers, and the feedback/criticisms about these answers, to give the best possible answer to the question.
+You joined a mathematics study group. After being given a math question, all members of your study group have independently come up with their own answer and then compared all the proposed answers. You now have two tasks: 1) Consider the feedback/criticisms given by members of the study group and decide which answer you believe a majority of the group will agree is best (or say "None" if no answer was correct). 2) Incorporate details from the best answers, and the feedback/criticisms about these answers, to give the best possible answer to the question.
 Before answering the question, all students in the study group were instructed to first give their reasoning process in <think> </think> tags and then give the final answer to the question in <answer> </answer> tags. Similarly, before comparing/criticizing the proposed answers, students in the study group were instructed to first compare the reasoning process of the different answers in <compare> </compare> tags and then to explain why an answer is best (or why no answer is correct) in <explain> </explain> tags and lastly to state the unique student identifier of the answer in <identify> </identify> tags.
 As a reminder, for the given question, you want to consider all answers suggested by the study group alongside the feedback/criticisms given by the group about these answers. After doing so, you have two goals: 1) State which answer you believe the majority of the study group will accept is best (or say "None" if no suggested answers are correct). 2) Give the best possible answer to the question by incorporating details from the best answers as well as feedback/criticisms about these answers.
 You should first summarize the feedback/criticisms given by the group, then state the unique student identifier (marked by <student> <\student> tags) of the answer you believe a majority of the study group will accept as best, then restate the question the study group is trying to solve, and lastly (utilizing your newfound understanding of what the study group likes to see in an answer) provide the best answer to the question by thinking through the reasoning steps before stating the final answer to the question.
@@ -150,7 +150,7 @@ def pick_k_cols(cols, datum, current_stage, default_k=15, method='top_k'):
         subsampled_cols = random.sample(valid_cols, k)
     elif method == 'top_k': #TODO: Clean this up. Super ugly way of doing this, but too jet-lagged to optimize...
         #Find total reward per answer and map in dict for easy sorting/filtering
-        question, completions, answer = [[{'content':datum['question']}]], [[{'content':datum[c]}] for c in valid_cols], [datum['answer'] for _ in valid_cols] #Weird formatting is for compatability with stage reward functions
+        question, completions, answer = [[{'content':datum['question']}]], [[{'content':datum[c]}] for c in valid_cols], [datum['answer'] for _ in valid_cols] #Weird formatting is for compatibility with stage reward functions
         if current_stage == 2:
             total_rewards = stage1_rewards.top_k_cumulative_reward(question, completions, answer)
         elif current_stage == 3:
