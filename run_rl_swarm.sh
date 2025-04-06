@@ -74,6 +74,8 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
     done
 
     export PORT=$ACTUAL_PORT
+    export MODAL_PROXY_URL="http://localhost:$PORT/api/"
+
     echo "✅ Launching modal-login on PORT=$PORT"
 
     yarn dev > modal-login/logs/dev.log 2>&1 &
