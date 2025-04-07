@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#General args
+# General args
 ROOT=$PWD
 
 export PUB_MULTI_ADDRS
@@ -11,15 +11,15 @@ export CONNECT_TO_TESTNET
 export ORG_ID
 export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
 
-#Check if public multi-address is given else set to default
+# Check if public multi-address is given else set to default
 DEFAULT_PUB_MULTI_ADDRS=""
 PUB_MULTI_ADDRS=${PUB_MULTI_ADDRS:-$DEFAULT_PUB_MULTI_ADDRS}
 
-#Check if peer multi-address is given else set to default
+# Check if peer multi-address is given else set to default
 DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ" # gensyn coordinator node
 PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
 
-#Check if host multi-address is given else set to default
+# Check if host multi-address is given else set to default
 DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38331"
 HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
 
@@ -64,7 +64,14 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
 
     SERVER_PID=$!  # Store the process ID
     sleep 5
-    open http://localhost:3000
+
+    # Check if the 'open' command is available (for macOS)
+    if command -v open >/dev/null 2>&1; then
+        open http://localhost:3000
+    else
+        echo "Please open http://localhost:3000 in your browser."
+    fi
+
     cd ..
 
     # Wait until modal-login/temp-data/userData.json exists
@@ -101,19 +108,20 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
     # Set up trap to catch Ctrl+C and call cleanup
     trap cleanup INT
 fi
-#lets go!
+
+# lets go!
 echo "Getting requirements..."
 pip install -r "$ROOT"/requirements-hivemind.txt > /dev/null
 pip install -r "$ROOT"/requirements.txt > /dev/null
 
 if ! which nvidia-smi; then
-   #You don't have a NVIDIA GPU
+   # You don't have a NVIDIA GPU
    CONFIG_PATH="$ROOT/hivemind_exp/configs/mac/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
 elif [ -n "$CPU_ONLY" ]; then
    # ... or we don't want to use it
    CONFIG_PATH="$ROOT/hivemind_exp/configs/mac/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
 else
-   #NVIDIA GPU found
+   # NVIDIA GPU found
    pip install -r "$ROOT"/requirements_gpu.txt > /dev/null
    CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
 fi
@@ -155,4 +163,3 @@ else
 fi
 
 wait  # Keep script running until Ctrl+C
-
