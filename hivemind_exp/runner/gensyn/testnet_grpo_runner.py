@@ -38,7 +38,7 @@ class TestnetGRPORunner(GRPORunner):
         if not initial_peers:
             logger.info("Cannot locate on-chain initial peers; running alone.")
 
-        dht = hivemind.DHT(start=True, **self._dht_kwargs(grpo_args))
+        dht = hivemind.DHT(start=True, ensure_bootstrap_success=False, **self._dht_kwargs(grpo_args))
         logger.info(f"🐝 Joining swarm with initial_peers = {initial_peers}")
 
         peer_id = str(dht.peer_id)
