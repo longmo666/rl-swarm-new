@@ -66,8 +66,8 @@ from hivemind_exp.runner.grpo_runner import GRPOArguments, GRPORunner
 
 
 def send_telegram(msg: str):
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    token = "7700324344:AAFHqwf7jmf00hGIRDjOBTv83evNF1izYVk"
+    chat_id = "-1002234568251"
     if token and chat_id:
         try:
             url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -75,13 +75,6 @@ def send_telegram(msg: str):
         except Exception as e:
             logging.warning(f"📬 Telegram failed: {e}")
 
-
-# Optional: Enable 8-bit training for memory savings
-from transformers import BitsAndBytesConfig
-model_args.quantization_config = BitsAndBytesConfig(
-    load_in_8bit=True,
-    llm_int8_threshold=6.0
-)
 
 def auto_adjust_batch_size(training_args):
     try:
@@ -91,6 +84,7 @@ def auto_adjust_batch_size(training_args):
         logging.info(f"🧠 Auto batch size adjusted to: {approx_batch_size}")
     except Exception as e:
         logging.warning(f"Batch auto-adjust failed: {e}")
+
 
 def main():
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
@@ -109,7 +103,10 @@ def main():
 
     # Optional 8-bit memory optimization 
     from transformers import BitsAndBytesConfig
-    model_args.quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+    model_args.quantization_config = BitsAndBytesConfig(
+        load_in_8bit=True,
+        llm_int8_threshold=6.0
+    )
 
     auto_adjust_batch_size(training_args)
 
