@@ -1,5 +1,3 @@
-# This workflow installs Python dependencies, runs tests, and performs linting
-
 name: Python application
 
 on:
@@ -24,14 +22,16 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
-      # 💡 TIP: You can also test multiple versions using a matrix strategy
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        # Install base tools
         pip install flake8 pytest
+        # Install additional packages manually or from requirements.txt
+        pip install hivemind fastapi
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      # 💡 NOTE: You could skip installing flake8/pytest manually if they’re already in requirements.txt
+      # 🧠 Make sure `hivemind` and `fastapi` are either in requirements.txt or listed here
 
     - name: Lint with flake8
       run: |
@@ -40,10 +40,7 @@ jobs:
 
         # This allows the build to pass even with warnings
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      # ⚠️ WARNING: The --exit-zero means the lint step won’t fail even if issues are found.
-      # Remove it if you want the CI to fail when there are linting problems.
 
     - name: Test with pytest
       run: |
         pytest
-      # ✅ This runs your unit tests
