@@ -1,9 +1,8 @@
 import logging
-import os
-import requests
 import colorlog
-import torch
+import requests  # Make sure requests is imported for Telegram logging
 from trl import GRPOConfig, ModelConfig, TrlParser
+
 from hivemind_exp.chain_utils import (
     ModalSwarmCoordinator,
     WalletSwarmCoordinator,
@@ -29,22 +28,8 @@ def send_telegram(msg: str):
             logging.warning(f"📬 Telegram failed: {e}")
 
 
-def auto_adjust_batch_size(training_args):
-    try:
-        free_mem, _ = torch.cuda.mem_get_info()
-        approx_batch_size = max(1, min(4, int(free_mem / 1e9)))
-        training_args.per_device_train_batch_size = approx_batch_size
-        logging.info(f"🧠 Auto batch size adjusted to: {approx_batch_size}")
-        send_telegram(f"🧠 Auto batch size adjusted to: {approx_batch_size}")
-    except Exception as e:
-        logging.warning(f"Batch auto-adjust failed: {e}")
-        send_telegram(f"⚠️ Batch auto-adjust failed: {e}")
-
-
 def main():
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-    torch.cuda.empty_cache()
-
+    # Setup logging.
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     handler = colorlog.StreamHandler()
@@ -53,66 +38,38 @@ def main():
     )
     root_logger.addHandler(handler)
 
-    parser = TrlParser((ModelConfig, GRPOArguments, TestnetGRPOArguments, GRPOConfig))  # type: ignore
-    model_args, grpo_args, testnet_args, training_args = parser.parse_args_and_config()
-
-    # Optional 8-bit memory optimization 
-    from transformers import BitsAndBytesConfig
-    model_args.quantization_config = BitsAndBytesConfig(
-        load_in_8bit=True,
-        llm_int8_threshold=6.0
-    )
-
-    logging.info("🚀 Starting auto batch size adjustment...")
-    send_telegram("🚀 Starting auto batch size adjustment...")
-    auto_adjust_batch_size(training_args)
-
-    if org_id := testnet_args.modal_org_id:
-        runner = TestnetGRPORunner(ModalSwarmCoordinator(org_id, web3=setup_web3()))
-        logging.info(f"📱 Running with ModalSwarmCoordinator. Org ID: {org_id}")
-        send_telegram(f"📱 Running with ModalSwarmCoordinator. Org ID: {org_id}")
-    elif priv_key := testnet_args.wallet_private_key:
-        runner = TestnetGRPORunner(WalletSwarmCoordinator(priv_key, web3=setup_web3()))
-        logging.info(f"📱 Running with WalletSwarmCoordinator. Private Key: {priv_key[:5]}... (for security)")
-        send_telegram(f"📱 Running with WalletSwarmCoordinator. Private Key: {priv_key[:5]}... (for security)")
-    else:
-        runner = GRPORunner()
-        logging.info("📱 Running with GRPORunner.")
-        send_telegram("📱 Running with GRPORunner.")
-
-    send_telegram("🚀 Starting *Qwen 2.5* fine-tune...")
+    # Send initial log to Telegram
+    send_telegram("Training script started. Initializing configurations...")
 
     try:
-        logging.info("🔧 Starting training...")
-        send_telegram("🔧 Starting training...")
-        runner.run(model_args, grpo_args, training_args, get_stage1_samples)
-        logging.info("✅ Fine-tuning completed successfully.")
-        send_telegram("✅ *Qwen 2.5* fine-tune completed successfully.")
-    except torch.cuda.OutOfMemoryError:
-        logging.warning("⚠️ CUDA OOM! Retrying...")
-        send_telegram("⚠️ CUDA OOM! Retrying with smaller batch size...")
-        training_args.per_device_train_batch_size = 1
-        training_args.gradient_accumulation_steps *= 2
-        logging.info(f"🧠 Batch size reduced to {training_args.per_device_train_batch_size}, "
-                     f"gradient accumulation steps increased to {training_args.gradient_accumulation_steps}.")
-        send_telegram(f"🧠 Batch size reduced to {training_args.per_device_train_batch_size}, "
-                       f"gradient accumulation steps increased to {training_args.gradient_accumulation_steps}.")
-        torch.cuda.empty_cache()
+        # Parsing arguments and configs
+        parser = TrlParser((ModelConfig, GRPOArguments, TestnetGRPOArguments, GRPOConfig))  # type: ignore
+        model_args, grpo_args, testnet_args, training_args = parser.parse_args_and_config()
 
-        try:
-            logging.info("🔧 Retry training...")
-            send_telegram("🔧 Retry training...")
-            runner.run(model_args, grpo_args, training_args, get_stage1_samples)
-            logging.info("✅ Retry successful. Fine-tune completed.")
-            send_telegram("✅ Retry successful. Fine-tune completed.")
-        except Exception as e:
-            logging.error(f"❌ Retry failed: {e}")
-            send_telegram(f"❌ Retry failed: {e}")
+        # Send configuration info to Telegram
+        send_telegram(f"Configurations loaded: {model_args}, {grpo_args}, {testnet_args}, {training_args}")
+
+        # Run main training loop.
+        if org_id := testnet_args.modal_org_id:
+            send_telegram(f"Starting with ModalSwarmCoordinator for org_id: {org_id}")
+            runner = TestnetGRPORunner(ModalSwarmCoordinator(org_id, web3=setup_web3()))
+        elif priv_key := testnet_args.wallet_private_key:
+            send_telegram(f"Starting with WalletSwarmCoordinator for private_key: {priv_key[:8]}***")
+            runner = TestnetGRPORunner(WalletSwarmCoordinator(priv_key, web3=setup_web3()))
+        else:
+            send_telegram("Starting with GRPORunner")
+            runner = GRPORunner()
+
+        # Send a message to Telegram about starting the run
+        send_telegram("Running the training...")
+
+        runner.run(model_args, grpo_args, training_args, get_stage1_samples)
+        send_telegram("Training completed successfully!")
 
     except Exception as e:
-        logging.error(f"❌ Training failed: {e}")
-        send_telegram(f"❌ Training failed: {e}")
-
+        send_telegram(f"⚠️ Error occurred during execution: {str(e)}")
+        logging.error(f"⚠️ Error: {e}")
+    
 
 if __name__ == "__main__":
     main()
