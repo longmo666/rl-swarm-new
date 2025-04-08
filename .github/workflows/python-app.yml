@@ -5,7 +5,6 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  # 💡 TIP: If you want this to run on any branch, change "main" to "*"
 
 permissions:
   contents: read
@@ -15,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-      # ✅ This checks out your code from the repo
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
@@ -26,19 +25,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # Install base tools
-        pip install flake8 pytest
-        # Install additional packages manually or from requirements.txt
-        pip install hivemind fastapi
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      # 🧠 Make sure `hivemind` and `fastapi` are either in requirements.txt or listed here
+        pip install -r requirements.txt
 
     - name: Lint with flake8
       run: |
-        # This stops the build for critical syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-
-        # This allows the build to pass even with warnings
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Test with pytest
