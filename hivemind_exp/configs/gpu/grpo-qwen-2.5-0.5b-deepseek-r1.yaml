@@ -1,9 +1,8 @@
 # Model arguments
 model_name_or_path: Gensyn/Qwen2.5-0.5B-Instruct
 model_revision: main
-torch_dtype: bfloat16
-attn_implementation: flash_attention_2
-bf16: true
+torch_dtype: float16 # Use float16 for reduced memory usage
+bf16: false # Disable bf16
 tf32: true
 output_dir: runs/gsm8k/multinode/Qwen2.5-0.5B-Instruct-Gensyn-Swarm
 
@@ -14,37 +13,37 @@ dataset_id_or_path: 'openai/gsm8k'
 # No LoRA is used here
 
 # Training arguments
-max_steps: 1000 # You can scale this depending on your experiment length
-per_device_train_batch_size: 2 # was 4
-gradient_accumulation_steps: 16 # was 8
-gradient_checkpointing: true
+max_steps: 20
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 2 # Reduce accumulation steps to save memory
+gradient_checkpointing: false # Disable gradient checkpointing
 gradient_checkpointing_kwargs:
  use_reentrant: false
-learning_rate: 1.0e-6 # Slightly higher for faster convergence (you can tune)
+learning_rate: 5.0e-7
 lr_scheduler_type: cosine
 warmup_ratio: 0.03
-beta: 0.001 # Keep as is
+# GRPO specific parameters
+beta: 0.001
 max_prompt_length: 256
-max_completion_length: 512 # Reduce a bit to save memory, unless your use case requires 1024
-num_generations: 4 # Reduce from 8 to save memory for vLLM
+max_completion_length: 512 # Reduce completion length to save VRAM
+num_generations: 2 # Reduce the number of generations
 use_vllm: true
-vllm_gpu_memory_utilization: 0.85 # Safe sweet spot for a 3090 with 17GB free
-# vllm_device: "cuda:0"  # Optional to be explicit
+vllm_gpu_memory_utilization: 0.1 # Reduce GPU memory usage for vllm
 
 # Logging arguments
 logging_strategy: steps
-logging_steps: 2
+logging_steps: 10 # Increase logging steps to reduce overhead
 report_to:
  - tensorboard
 save_strategy: 'steps'
-save_steps: 100
+save_steps: 50 # Increase save steps to reduce overhead
 seed: 42
 
 # Hugging Face Hub
 # push_to_hub: false
 # hub_strategy: every_save
 
-# Script arguments (Swarm / Gensyn)
+# Script arguments
 public_maddr: '/ip4/38.101.215.12/tcp/30002'
 host_maddr: '/ip4/0.0.0.0/tcp/38331'
 max_rounds: 10000
