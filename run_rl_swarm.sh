@@ -68,11 +68,27 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
         fi
     fi
     yarn install
-    yarn dev > /dev/null 2>&1 & # Run in background and suppress output
+    yarn dev > server.log 2>&1 &
+    SERVER_PID=$!
+    MAX_WAIT=30  
+    for ((i = 0; i < MAX_WAIT; i++)); do
+        if grep -q "Local:        http://localhost:" server.log; then
+            PORT=$(grep "Local:        http://localhost:" server.log | sed -n 's/.*http:\/\/localhost:\([0-9]*\).*/\1/p')
+            if [ -n "$PORT" ]; then
+                echo "Server is running successfully on port $PORT"
+                break
+            fi
+        fi
+        sleep 1
+    done
+    
+    if [ $i -eq $MAX_WAIT ]; then
+        echo "Timeout waiting for server to start."
+        kill $SERVER_PID 2>/dev/null || true
+        exit 1
+    fi
 
-    SERVER_PID=$!  # Store the process ID
-    sleep 5
-    open http://localhost:3000
+    open http://localhost:$PORT
     cd ..
 
     echo_green ">> Waiting for modal userData.json to be created..."
@@ -87,7 +103,7 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
     # Wait until the API key is activated by the client
     echo "Waiting for API key to become activated..."
     while true; do
-        STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
+        STATUS=$(curl -s "http://localhost:$PORT/api/get-api-key-status?orgId=$ORG_ID")
         if [[ "$STATUS" == "activated" ]]; then
             echo "API key is activated! Proceeding..."
             break
