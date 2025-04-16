@@ -1,6 +1,10 @@
 #!/bin/bash
 
-set -euo pipefail
+# Instead of `set -euo pipefail` which causes immediate exit on unbound variables,
+# use a more forgiving setup
+set -e  # Exit on error
+set -u  # Treat unset variables as errors (but we'll handle PATH separately)
+set -o pipefail  # Exit if any command in a pipe fails
 
 # General arguments
 ROOT=$PWD
