@@ -98,7 +98,16 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
     SERVER_PID=$!  # Store the process ID
     echo "Started server process: $SERVER_PID"
     sleep 5
-    open http://localhost:3000
+
+    # Open the URL based on available commands
+    if command -v xdg-open > /dev/null; then
+        xdg-open http://localhost:3000
+    elif command -v open > /dev/null; then
+        open http://localhost:3000
+    else
+        echo "Please open the following URL in your browser: http://localhost:3000"
+    fi
+
     cd ..
 
     echo_green ">> Waiting for modal userData.json to be created..."
