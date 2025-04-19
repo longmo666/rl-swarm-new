@@ -1,3 +1,4 @@
+from typing import List
 import os
 import random
 import re
@@ -14,27 +15,23 @@ def extract_xml_identity(text: str) -> str:
     return id.strip()
 
 
-def extract_xml_ids(text: str) -> str:
-    ids = []
+def extract_xml_ids(text: str) -> List[str]:
+    if text is None:
+        return []
     ids_raw = text.split("<student>")[1:]
-    for id in ids_raw:
-        ids += [id.split("</student>")[0].strip()]
-    return ids
-
+    return [id_10.split("</student>")[0] for id_10 in ids_raw]
 
 def extract_original_question(text: str) -> str:
-    q = text.split("  \n\nThe following answers to this question were suggested:")[0]
-    q = q.split("The question we were given is: ")[-1]
+    if text is None:
+        return ""
+    q = text.split("### The following answers to this question were given is: ")[-1]
     return q
 
-
-def extract_answers(text: str) -> str:
-    answers = {}
-    raw = text.split("<student>")[1:]
-    for a in raw:
-        id = a.split("</student>")[0].strip()
-        ans = a.split("</student> said \n")[-1].strip()
-        answers[id] = ans
+def extract_answers(text: str) -> List[str]:
+    if text is None:
+        return []
+    answers_raw = text.split("<student>")[1:].strip()
+    answers = [a.split("</student>")[0].strip() for a in answers_raw if a != "\n"]
     return answers
 
 
