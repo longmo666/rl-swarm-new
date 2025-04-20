@@ -161,7 +161,6 @@ if [ "$CONNECT_TO_TESTNET" = "True" ]; then
             sleep 5
         fi
     done
-fi
 
 pip_install() {
     pip install --disable-pip-version-check -q -r "$1"
