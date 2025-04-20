@@ -227,6 +227,15 @@ def final_correctness_reward_func(
     responses = [completion[0]["content"] for completion in completions]
     p = prompts[0][-1]["content"]
     extracted_responses = [extract_xml_final_answer(r) for r in responses]
+    
+    # Add null check
+    if answer is None or not extracted_responses:
+        return [0.0] * len(responses)
+    
+    # Make sure answer is iterable (convert to list if it's a single value)
+    if not isinstance(answer, (list, tuple)):
+        answer = [answer] * len(extracted_responses)
+    
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         os.makedirs(
             f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
@@ -241,9 +250,15 @@ def final_correctness_reward_func(
             f.write("-" * 20)
             out_line = f"Prompt:\n{p}\n\nAnswer:\n{answer[0]}\n\nResponse:\n{responses[0]}\n\nExtracted:\n{extracted_responses[0]}"
             f.write(out_line)
-    return [
-        1.0 * weighting if r == a else 0.0 for r, a in zip(extracted_responses, answer)
-    ]
+    
+    # Safe comparison with proper null checks
+    result = []
+    for r, a in zip(extracted_responses, answer):
+        if r is not None and a is not None:
+            result.append(1.0 * weighting if r == a else 0.0)
+        else:
+            result.append(0.0)
+    return result
 
 
 def strict_format_reward_func(
