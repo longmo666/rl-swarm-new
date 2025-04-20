@@ -161,6 +161,11 @@ def gsm8k_stage_data(
         rewards = defaultdict(float)
         for outputs in final_stage_outputs:
             for node_key, output in outputs.items():
+                question = output.get("question")
+                if question is None:
+                    logging.warning(f"Missing 'question' key in output: {output}")
+                    question = "<no question available>"
+                    
                 prompts = [
                     [
                         {"role": "system", "content": output["question"]},
