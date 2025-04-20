@@ -168,15 +168,10 @@ def concensus_correctness_reward_func(
     agent_answers = extract_answers(p)
     extracted_responses = [extract_xml_identity(r) for r in responses]
     chosen_rewards = []
-
-    # Handling the situation where the answer is None or an empty list
-    correct_answer = answer[0] if answer and len(answer) > 0 else None
-
     for r in extracted_responses:
         cur_reward = 0
         if r in agent_answers:
-             # Compare only when there is a correct answer
-            if correct_answer is not None and stage1_rewards.extract_xml_answer(agent_answers[r]) == correct_answer:
+            if stage1_rewards.extract_xml_answer(agent_answers[r]) == answer[0]:
                 cur_reward += 1.0
             if stage1_rewards.extract_xml_answer(agent_answers[r]).isdigit():
                 cur_reward += 0.5
@@ -202,13 +197,11 @@ def concensus_correctness_reward_func(
                 stage1_rewards.extract_xml_answer(agent_answers[id])
                 for id in agent_answers
             ]
-            # Only perform this check when the answer is valid
-            if correct_answer is not None:
-                check_submissions = [
-                    True if r == a else False for r, a in zip(agent_as, answer)
-                ]
-                if all(check_submissions):
-                    cur_reward += 10
+            check_submissions = [
+                True if r == a else False for r, a in zip(agent_as, answer)
+            ]
+            if all(check_submissions):
+                cur_reward += 10
         chosen_rewards += [cur_reward]
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         if extracted_responses[0] in agent_answers:
@@ -234,9 +227,6 @@ def final_correctness_reward_func(
     responses = [completion[0]["content"] for completion in completions]
     p = prompts[0][-1]["content"]
     extracted_responses = [extract_xml_final_answer(r) for r in responses]
-    # If answer is None, we don't have a correct answer to compare to
-    if answer is None:
-       return [0.0] * len(extracted_responses)
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         os.makedirs(
             f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
@@ -375,8 +365,7 @@ def hivemind_cumulative_reward(
         )
         output_data = {
             "question": question,
-            # Safely obtain answers, use default values if answer is empty or None
-            "answer": answer[0] if answer and len(answer) > 0 else "Unknown",
+            "answer": answer[0],
             "stage3_prompt": prompt,
             "final_agent_decision": {node.key: responses[maximal_reward_idx]},
         }
