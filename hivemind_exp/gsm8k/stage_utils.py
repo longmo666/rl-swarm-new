@@ -168,8 +168,8 @@ def gsm8k_stage_data(
                     
                 prompts = [
                     [
-                        {"role": "system", "content": output["question"]},
-                        {"role": "system", "content": output["stage3_prompt"]},
+                        {"role": "system", "content": question},
+                        {"role": "system", "content": output.get("stage3_prompt", "<no prompt available>")},
                     ],
                 ]
                 final_answer = next(iter(output["final_agent_decision"].items()))[1]
