@@ -60,10 +60,6 @@ Optionally pair your HF account by using your HF token - [more here](https://hug
 
 From this stage onward your device will be used to train a hyperscale machine learning system. You should see your peer register and vote on-chain [here](https://gensyn-testnet.explorer.alchemy.com/address/0x2fC68a233EF9E9509f034DD551FF90A79a0B8F82?tab=logs).
 
-### Train a bigger model
-
-To train a 1.5B parameter model instead of the default 0.5B model, you can modify the `run_rl_swarm.sh` file. Update the configuration or model parameters within the script as needed to reflect the desired model size. Ensure that your system has sufficient resources to handle the increased computational requirements.
-
 ## Identity management
 
 ### Introduction
