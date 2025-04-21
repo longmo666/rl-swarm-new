@@ -180,7 +180,23 @@ elif [ -n "$CPU_ONLY" ]; then
 else
     # NVIDIA GPU found
     pip_install "$ROOT"/requirements_gpu.txt
-    CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
+
+    echo -en $GREEN_TEXT
+    echo ">> NVIDIA GPU detected."
+    echo ">> Which model would you like to train?"
+    echo "   1) Qwen2.5-0.5B"
+    echo "   2) Qwen2.5-1.5B"
+    echo -en $RESET_TEXT
+
+    while true; do
+        read -p ">> Enter 1 or 2 [1]: " model_choice
+        model_choice=${model_choice:-1}
+        case $model_choice in
+            1) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"; break ;;
+            2) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-1.5b-deepseek-r1.yaml"; break ;;
+            *) echo ">>> Invalid choice. Please enter 1 or 2." ;;
+        esac
+    done
 fi
 
 echo_green ">> Done!"
