@@ -183,20 +183,31 @@ else
 
     echo -en $GREEN_TEXT
     echo ">> NVIDIA GPU detected."
-    echo ">> Which model would you like to train?"
-    echo "   1) Qwen2.5-0.5B"
-    echo "   2) Qwen2.5-1.5B"
+    
+    # Get total VRAM in MiB (assumes first GPU if multi-GPU system)
+    TOTAL_VRAM=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -n 1)
+    
+    echo ">> GPU VRAM detected: ${TOTAL_VRAM} MiB"
     echo -en $RESET_TEXT
 
-    while true; do
-        read -p ">> Enter 1 or 2 [1]: " model_choice
-        model_choice=${model_choice:-1}
-        case $model_choice in
-            1) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"; break ;;
-            2) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-1.5b-deepseek-r1.yaml"; break ;;
-            *) echo ">>> Invalid choice. Please enter 1 or 2." ;;
-        esac
-    done
+    if [ "$TOTAL_VRAM" -gt 39936 ]; then  # ~39 GB in MiB
+        echo ">> Which model would you like to train?"
+        echo "   1) Qwen2.5-0.5B"
+        echo "   2) Qwen2.5-1.5B"
+
+        while true; do
+            read -p ">> Enter 1 or 2 [1]: " model_choice
+            model_choice=${model_choice:-1}
+            case $model_choice in
+                1) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"; break ;;
+                2) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-1.5b-deepseek-r1.yaml"; break ;;
+                *) echo ">>> Invalid choice. Please enter 1 or 2." ;;
+            esac
+        done
+    else
+        echo ">> Less than 39GB VRAM detected. Defaulting to Qwen2.5-0.5B."
+        CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
+    fi
 fi
 
 echo_green ">> Done!"
