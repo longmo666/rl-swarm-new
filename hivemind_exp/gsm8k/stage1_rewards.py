@@ -35,6 +35,7 @@ def correctness_reward_func(
     responses = [completion[0]["content"] for completion in completions]
     q = prompts[0][-1]["content"]
     extracted_responses = [extract_xml_answer(r) for r in responses]
+    
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         os.makedirs(
             f"model_output_samples/gsm8k_samples_from_{os.getenv('HOSTNAME')}",
@@ -49,8 +50,9 @@ def correctness_reward_func(
             f.write("-" * 20)
             out_line = f"Question:\n{q}\n\nAnswer:\n{answer[0]}\n\nResponse:\n{responses[0]}\n\nExtracted:\n{extracted_responses[0]}"
             f.write(out_line)
+    
     return [
-        1.0 * weighting if r == a else 0.0 for r, a in zip(extracted_responses, answer)
+        weighting if r == a else 0.0 for r, a in zip(extracted_responses, answer)
     ]
 
 
@@ -79,6 +81,7 @@ def soft_format_reward_func(completions, weighting=0.5, **kwargs) -> list[float]
 def xmlcount_reward_func(completions, weighting=1.0, **kwargs) -> list[float]:
     contents = [completion[0]["content"] for completion in completions]
     return [count_xml(c) * weighting for c in contents]
+
 
 def top_k_cumulative_reward(
     prompts,
@@ -152,8 +155,9 @@ def hivemind_cumulative_reward(
             "agent_answers": {node.key: responses[maximal_reward_idx]},
         }
 
-    if output_signal_selector != None:
+    if output_signal_selector is not None:
         node.outputs = output_data
         node.rewards = total_reward
 
-    return [0.0 for _ in total_reward]
+    #Return the actual total_reward instead of 0s
+    return total_reward
