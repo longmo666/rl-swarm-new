@@ -2,6 +2,7 @@ import os
 import random
 import re
 from difflib import SequenceMatcher
+from typing import List, Dict
 
 import numpy as np
 
@@ -27,7 +28,9 @@ def extract_xml_question(text: str) -> str:
     return question.strip()
 
 
-def extract_xml_ids(text: str) -> str:
+def extract_xml_ids(text: str) -> List[str]:
+    if not isinstance(text, str):
+        return []
     ids = []
     ids_raw = text.split("<student>")[1:]
     for id in ids_raw:
@@ -36,7 +39,7 @@ def extract_xml_ids(text: str) -> str:
 
 
 # TODO: Rethink how we add this reward in general setting with delayed rewards. Agents might learn to reward hack by "spamming" identify tags of their choice...
-def extract_xml_choices(text: str) -> str:
+def extract_xml_choices(text: str) -> List[str]:
     ids = []
     ids_raw = text.split("<identify>")[1:]
     for id in ids_raw:
@@ -50,7 +53,7 @@ def extract_original_question(text: str) -> str:
     return q.strip()
 
 
-def extract_answers(text: str) -> str:
+def extract_answers(text: str) -> Dict[str, str]:
     answers = {}
     raw = text.split(
         "  \nAfter comparing these answers, the following feedback was given about which answer is best: \n"
@@ -62,7 +65,7 @@ def extract_answers(text: str) -> str:
     return answers
 
 
-def count_xml(text) -> float:
+def count_xml(text: str) -> float:
     count = 0.0
     if text.count("<summarize_feedback>\n") == 1:
         count += 0.125
@@ -89,7 +92,7 @@ def count_xml(text) -> float:
     return count
 
 
-def swarm_majority(choices):
+def swarm_majority(choices: List[str]) -> List[str]:
     votes = {}
     max_votes = 0
     for c in choices:
@@ -108,8 +111,8 @@ def swarm_majority(choices):
 
 # Reward functions
 def consensus_reward_func(
-    prompts, completions, weighting=2.0, logging=False, **kwargs
-) -> list[float]:
+    prompts, completions, weighting: float = 2.0, logging: bool = False, **kwargs
+) -> List[float]:
     responses = [completion[0]["content"] for completion in completions]
     p = prompts[0][-1]["content"]
     critic_choices = extract_xml_choices(p)
@@ -117,17 +120,17 @@ def consensus_reward_func(
     extracted_responses = [extract_xml_identity(r) for r in responses]
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         os.makedirs(
-            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             exist_ok=True,
         )
         log_file = os.path.join(
             "model_output_samples",
-            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             "consensus_samps.txt",
         )
         with open(log_file, "a") as f:
             f.write("-" * 20)
-            out_line = f"\nPrompt:\n{p}\n\nResponse:\n{responses[0]}\n\nCritic Choice Distribution:\n{critic_choices}\n\nExtracted:\n{extracted_responses[0]}\n\nGot reward? {extracted_responses[0] in majority_choices}"
+            out_line = f"\nPrompt:\n{p}\n\nResponse:\n{responses[0]}\n\nCritic Choice Distribution:\n{critic_choices}\n\nExtracted:\n{extracted_responses[0]}\n\nGot reward? {extracted_responses[0] in majority_choices}\n"
             f.write(out_line)
     return [
         1.0 * weighting if r in majority_choices else 0.0 for r in extracted_responses
@@ -135,41 +138,46 @@ def consensus_reward_func(
 
 
 def question_recreation_reward_func(
-    prompts, completions, weighting=1.0, logging=False, **kwargs
-) -> list[float]:
+    prompts, completions, weighting: float = 1.0, logging: bool = False, **kwargs
+) -> List[float]:
     responses = [completion[0]["content"] for completion in completions]
     p = prompts[0][-1]["content"]
     q = extract_original_question(p)
     recreated_qs = [extract_xml_question(r) for r in responses]
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         os.makedirs(
-            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             exist_ok=True,
         )
         log_file = os.path.join(
             "model_output_samples",
-            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             "question_recreation_samps.txt",
         )
         with open(log_file, "a") as f:
             f.write("-" * 20)
-            out_line = f"\nPrompt:\n{p}\n\nResponse:\n{responses[0]}\n\nOriginal Question:\n{q}\n\nExtracted recreation:\n{recreated_qs[0]}\n\nGot reward? {SequenceMatcher(None, recreated_qs[0], q).ratio()}"
+            out_line = f"\nPrompt:\n{p}\n\nResponse:\n{responses[0]}\n\nOriginal Question:\n{q}\n\nExtracted recreation:\n{recreated_qs[0]}\n\nGot reward? {SequenceMatcher(None, recreated_qs[0], q).ratio()}\n"
             f.write(out_line)
     return [SequenceMatcher(None, r, q).ratio() * weighting for r in recreated_qs]
 
 
 def concensus_correctness_reward_func(
-    prompts, completions, answer, weighting=2.0, logging=False, **kwargs
-) -> list[float]:
+    prompts, completions, answer, weighting: float = 2.0, logging: bool = False, **kwargs
+) -> List[float]:
     responses = [completion[0]["content"] for completion in completions]
     p = prompts[0][-1]["content"]
     agent_answers = extract_answers(p)
     extracted_responses = [extract_xml_identity(r) for r in responses]
     chosen_rewards = []
+
+    # Handling the situation where the answer is None or an empty list
+    correct_answer = answer[0] if answer and len(answer) > 0 else None
+
     for r in extracted_responses:
         cur_reward = 0
         if r in agent_answers:
-            if stage1_rewards.extract_xml_answer(agent_answers[r]) == answer[0]:
+            # Compare only when there is a correct answer
+            if correct_answer is not None and stage1_rewards.extract_xml_answer(agent_answers[r]) == correct_answer:
                 cur_reward += 1.0
             if stage1_rewards.extract_xml_answer(agent_answers[r]).isdigit():
                 cur_reward += 0.5
@@ -195,49 +203,54 @@ def concensus_correctness_reward_func(
                 stage1_rewards.extract_xml_answer(agent_answers[id])
                 for id in agent_answers
             ]
-            check_submissions = [
-                True if r == a else False for r, a in zip(agent_as, answer)
-            ]
-            if all(check_submissions):
-                cur_reward += 10
+            # Only perform this check when the answer is valid
+            if correct_answer is not None:
+                check_submissions = [
+                    True if r == a else False for r, a in zip(agent_as, answer)
+                ]
+                if all(check_submissions):
+                    cur_reward += 10
         chosen_rewards += [cur_reward]
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         if extracted_responses[0] in agent_answers:
             os.makedirs(
-                f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+                f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
                 exist_ok=True,
             )
             log_file = os.path.join(
                 "model_output_samples",
-                f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+                f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
                 "correctness_samps.txt",
             )
             with open(log_file, "a") as f:
                 f.write("-" * 20)
-                out_line = f"\nPrompt:\n{p}\n\nResponse:\n{responses[0]}\n\nChosen answer ID:\n{extracted_responses[0]}\n\nExtracted:\n{agent_answers[extracted_responses[0]]}\n\nReward for choice: {chosen_rewards[0]}"
+                out_line = f"\nPrompt:\n{p}\n\nResponse:\n{responses[0]}\n\nChosen answer ID:\n{extracted_responses[0]}\n\nExtracted:\n{agent_answers[extracted_responses[0]]}\n\nReward for choice: {chosen_rewards[0]}\n"
                 f.write(out_line)
     return [r * weighting for r in chosen_rewards]
 
 
 def final_correctness_reward_func(
-    prompts, completions, answer, weighting=2.0, logging=False, **kwargs
-) -> list[float]:
+    prompts, completions, answer, weighting: float = 2.0, logging: bool = False, **kwargs
+) -> List[float]:
     responses = [completion[0]["content"] for completion in completions]
     p = prompts[0][-1]["content"]
     extracted_responses = [extract_xml_final_answer(r) for r in responses]
+    # If answer is None, we don't have a correct answer to compare to
+    if answer is None:
+        return [0.0] * len(extracted_responses)
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         os.makedirs(
-            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             exist_ok=True,
         )
         log_file = os.path.join(
             "model_output_samples",
-            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             "final_answer_correctness_samples.txt",
         )
         with open(log_file, "a") as f:
             f.write("-" * 20)
-            out_line = f"Prompt:\n{p}\n\nAnswer:\n{answer[0]}\n\nResponse:\n{responses[0]}\n\nExtracted:\n{extracted_responses[0]}"
+            out_line = f"Prompt:\n{p}\n\nAnswer:\n{answer[0]}\n\nResponse:\n{responses[0]}\n\nExtracted:\n{extracted_responses[0]}\n"
             f.write(out_line)
     return [
         1.0 * weighting if r == a else 0.0 for r, a in zip(extracted_responses, answer)
@@ -245,71 +258,71 @@ def final_correctness_reward_func(
 
 
 def strict_format_reward_func(
-    completions, weighting=0.5, logging=False, **kwargs
-) -> list[float]:
+    completions, weighting: float = 0.5, logging: bool = False, **kwargs
+) -> List[float]:
     """Reward function that checks if the completion has a specific format."""
     pattern = r"^<summarize_feedback>\n.*?\n</summarize_feedback>\n<majority>\n.*?\n</majority>\n<question>\n.*?\n</question>\n<think>\n.*?\n</think>\n<answer>\n.*?\n</answer>\n$"
     responses = [completion[0]["content"] for completion in completions]
     matches = [re.match(pattern, r) for r in responses]
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         os.makedirs(
-            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             exist_ok=True,
         )
         log_file = os.path.join(
             "model_output_samples",
-            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             "s3_strict_format_samps.txt",
         )
         with open(log_file, "a") as f:
             f.write("-" * 20)
-            out_line = f"\nResponse:\n{responses[0]}\n\nMatches? {matches[0]}"
+            out_line = f"\nResponse:\n{responses[0]}\n\nMatches? {matches[0]}\n"
             f.write(out_line)
     return [1.0 * weighting if match else 0.0 for match in matches]
 
 
 def soft_format_reward_func(
-    completions, weighting=0.5, logging=False, **kwargs
-) -> list[float]:
+    completions, weighting: float = 0.5, logging: bool = False, **kwargs
+) -> List[float]:
     """Reward function that checks if the completion has a specific format."""
     pattern = r"<summarize_feedback>.*?</summarize_feedback>\s*<majority>.*?</majority>\s*<question>.*?</question>\s*<think>.*?</think>\s*<answer>.*?</answer>"
     responses = [completion[0]["content"] for completion in completions]
     matches = [re.match(pattern, r) for r in responses]
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         os.makedirs(
-            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             exist_ok=True,
         )
         log_file = os.path.join(
             "model_output_samples",
-            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             "s3_soft_format_samps.txt",
         )
         with open(log_file, "a") as f:
             f.write("-" * 20)
-            out_line = f"\nResponse:\n{responses[0]}\n\nMatches? {matches[0]}"
+            out_line = f"\nResponse:\n{responses[0]}\n\nMatches? {matches[0]}\n"
             f.write(out_line)
     return [1.0 * weighting if match else 0.0 for match in matches]
 
 
 def xmlcount_reward_func(
-    completions, weighting=1.0, logging=False, **kwargs
-) -> list[float]:
+    completions, weighting: float = 1.0, logging: bool = False, **kwargs
+) -> List[float]:
     contents = [completion[0]["content"] for completion in completions]
     if (random.random() < 0.01) and logging:  # 1% chance to write samples into a file
         os.makedirs(
-            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"model_output_samples/multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             exist_ok=True,
         )
         log_file = os.path.join(
             "model_output_samples",
-            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME')}",
+            f"multi_stage_gsm8k_samples_from_{os.getenv('HOSTNAME', 'unknown')}",
             "count_xml_samps.txt",
         )
         with open(log_file, "a") as f:
             f.write("-" * 20)
             out_line = (
-                f"\nResponse:\n{contents[0]}\n\nCount reward: {count_xml(contents[0])}"
+                f"\nResponse:\n{contents[0]}\n\nCount reward: {count_xml(contents[0])}\n"
             )
             f.write(out_line)
     return [count_xml(c) * weighting for c in contents]
@@ -320,10 +333,10 @@ def hivemind_cumulative_reward(
     prompts,
     completions,
     answer,
-    logging=False,
-    output_signal_selector="max",
+    logging: bool = False,
+    output_signal_selector: str = "max",
     **kwargs,
-) -> list[float]:
+) -> List[float]:
     """
     Dummy reward function that accumulates all rewards into one + saves JSON to node.outputs
     """
@@ -363,13 +376,15 @@ def hivemind_cumulative_reward(
         )
         output_data = {
             "question": question,
-            "answer": answer[0],
+            # Safely obtain answers, use default values if answer is empty or None
+            "answer": answer[0] if answer and len(answer) > 0 else "Unknown",
             "stage3_prompt": prompt,
             "final_agent_decision": {node.key: responses[maximal_reward_idx]},
         }
 
-    if output_signal_selector != None:
+    if output_signal_selector is not None:
         node.outputs = output_data
         node.rewards = total_reward
 
-    return [0.0 for _ in total_reward]
+    #Return the actual total_reward instead of 0s
+    return total_reward
