@@ -253,6 +253,15 @@ else
     esac
 fi
 
+echo_green ">> Setting max_steps=$MAX_STEPS in config: $CONFIG_PATH"
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/^max_steps: .*/max_steps: $MAX_STEPS/" "$CONFIG_PATH"
+else
+    sed -i "s/^max_steps: .*/max_steps: $MAX_STEPS/" "$CONFIG_PATH"
+fi
+
+
 echo_green ">> Good luck in the swarm!"
 echo_blue ">> Post about rl-swarm on X/twitter! --> https://tinyurl.com/swarmtweet"
 echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
