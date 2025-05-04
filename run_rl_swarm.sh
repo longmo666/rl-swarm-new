@@ -121,7 +121,7 @@ done
 
 while true; do
     echo -en $GREEN_TEXT
-    read -p ">> How many max_steps would you like to use? [1000, 5000, 10000, 50000, 100000] " steps
+    read -p ">> How many max_steps would you like to use? [5, 20, 50, 100, 200, 500, 1000, 2000] " steps
     echo -en $RESET_TEXT
     steps=${steps:-20}  # Default to "20" if the user presses Enter
     case $steps in
