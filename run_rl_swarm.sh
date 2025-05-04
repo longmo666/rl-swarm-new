@@ -121,13 +121,18 @@ done
 
 while true; do
     echo -en $GREEN_TEXT
-    read -p ">> How many max_steps would you like to use? [5, 20, 50, 100, 200, 500, 1000, 2000] " steps
+    read -p ">> How many max_steps would you like to use? (Enter a positive integer or press Enter for the default of 20) " steps
     echo -en $RESET_TEXT
-    steps=${steps:-20}  # Default to "20" if the user presses Enter
-    case $steps in
-        5 | 20 | 50 | 100 | 200 | 500 | 1000 | 2000) MAX_STEPS=$steps && break ;;
-        *)  echo ">>> Please answer in [5, 20, 50, 100, 200, 500, 1000, 2000]." ;;
-    esac
+    # Use default value of 20 if the user presses Enter
+    steps=${steps:-20}
+    # Check if the input is a positive integer
+    if [[ $steps =~ ^[1-9][0-9]*$ ]]; then
+        MAX_STEPS=$steps
+        echo ">> You have selected $MAX_STEPS steps."
+        break
+    else
+        echo ">>> Please enter a valid positive integer or press Enter for the default of 20."
+    fi
 done
 
 if [ "$CONNECT_TO_TESTNET" = true ]; then
