@@ -119,6 +119,22 @@ while true; do
     esac
 done
 
+while true; do
+    echo -en $GREEN_TEXT
+    read -p ">> How many max_steps would you like to use? (Enter a positive integer or press Enter for the default of 20) " steps
+    echo -en $RESET_TEXT
+    # Use default value of 20 if the user presses Enter
+    steps=${steps:-20}
+    # Check if the input is a positive integer
+    if [[ $steps =~ ^[1-9][0-9]*$ ]]; then
+        MAX_STEPS=$steps
+        echo ">> You have selected $MAX_STEPS steps."
+        break
+    else
+        echo ">>> Please enter a valid positive integer or press Enter for the default of 20."
+    fi
+done
+
 if [ "$CONNECT_TO_TESTNET" = true ]; then
     # Run modal_login server.
     echo "Please login to create an Ethereum Server Wallet"
@@ -241,6 +257,15 @@ else
         *) echo ">>> No answer was given, so NO models will be pushed to Hugging Face Hub" && HUGGINGFACE_ACCESS_TOKEN="None" ;;
     esac
 fi
+
+echo_green ">> Setting max_steps=$MAX_STEPS in config: $CONFIG_PATH"
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/^max_steps: .*/max_steps: $MAX_STEPS/" "$CONFIG_PATH"
+else
+    sed -i "s/^max_steps: .*/max_steps: $MAX_STEPS/" "$CONFIG_PATH"
+fi
+
 
 echo_green ">> Good luck in the swarm!"
 echo_blue ">> Post about rl-swarm on X/twitter! --> https://tinyurl.com/swarmtweet"
